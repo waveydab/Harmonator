@@ -1,0 +1,29 @@
+README - Harmonator Arpeggiator
+
+Harmonator is a midi arpeggiator oriented towards live performance. You input a rhythm, voice pattern, and then play.
+
+Harmonator is sparse. Chords(or just pitches) are input as a midi stream and "broken" chords are output in the form of another midi stream. In other words, you need minimally a midi keyboard and a midi synth(or soft synth). 
+
+
+LICENSING
+----------------------------------------------------------------------------
+
+See the "help-about" menuchoice
+
+BUILDING AND INSTALLING
+----------------------------------------------------------------------------
+Most of the requirements for installing Harmonator are probably already present on your Linux system. You'll also need a system called Fltk installed. Perform the procedure from within the distribution directory.
+
+1 Run the "configure" script
+Run this without arguments normally. It will scan your system for available resources and notify you of shortcomings. "configure --help" can be used list a plethora of switches for customization. Most of the generic switches are explained in file "INSTALL". Two extra package specific ones are defined.
+
+  --disable-library-version-check
+                          Disable library version checks(Enabled by default)
+  --enable-test-configuration
+                          Generate code to build testing version
+
+"configure" normally attempts to check versions of applicable libraries. The first switch disables this check. The second switch configures Harmonator for testing and is probably not necessary.
+
+2. Run "make". This will build a midi clock application and Harmonator proper.
+3. Run "make install" to copy files to the normal install sites. You may have to become root to install.
+This should give you a working copy of Harmonator that's hooked into your system such that you can run it from a shell. You may want to hook it into whatever menu system you're using. "make uninstall" can be used to remove previously installed files.
