@@ -1,0 +1,23 @@
+# Configuration File for Harmonator Arpeggiator
+rhythm string tt,tmp,tmp,tmp,tmp
+part string ad,ac,d,c,b,ad,ab,d,c,b
+chord_hold 1
+four_part 0
+adjust_root 1
+strig_midi 1
+strig_gate 0
+lsync_now 0
+lsync_measure 1
+lsync_beat 0
+part/midi mapping 1 2 2 2
+# dynamics/midi mappings
+rest 0
+pp 20
+p 35
+mp 45
+mf 65
+f 85
+ff 105
+# tempo/anacrusis
+beats_per_measure 2
+pulses_per_beat 24

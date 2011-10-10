@@ -1,0 +1,848 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0300 
+header_name {.h} 
+code_name {.cxx}
+decl {\#include <vector>} {public global
+} 
+
+decl {\#include <string>} {public global
+} 
+
+decl {\#include <FL/Fl_Text_Display.H>} {public global
+} 
+
+decl {\#include <assert.h>} {private local
+} 
+
+decl {\#include <search.h>} {private local
+} 
+
+decl {\#include <alsa/asoundlib.h>} {public local
+} 
+
+decl {\#include <FL/names.h>} {public global
+} 
+
+decl {\#include <FL/Fl_File_Chooser.H>} {public global
+} 
+
+decl {\#include "harmonator.h"} {public global
+} 
+
+decl {\#define log(msg) printf("%d:%s",__LINE__,msg)} {private global
+} 
+
+decl {class Harmonator;} {public global
+} 
+
+decl {using namespace std;} {public global
+} 
+
+class my000_button {: {public Fl_Button}
+} {
+  Function {handle(int e)} {open return_type int
+  } {
+    code {int rtn;
+  
+      switch(e){
+  	case FL_SHORTCUT:
+  	  if (this->type()==FL_NORMAL_BUTTON && Fl::event_key(this->shortcut())){
+  		this->set();
+  		this->redraw();
+		this->do_callback();
+  		rtn=1;
+  	  } else
+  		rtn = this->Fl_Button::handle(e);
+  	  break;
+      case FL_KEYUP:
+  	  if (this->type()==FL_NORMAL_BUTTON && Fl::event_key()==this->shortcut()){
+  		this->clear();
+  		this->redraw();
+  		rtn=1;
+  	  } else 
+  		rtn = this->Fl_Button::handle(e);
+  	  break;
+      default:
+      	rtn = this->Fl_Button::handle(e);
+      };
+  
+//       switch(e){
+//       case FL_SHORTCUT:
+//       case FL_KEYUP:
+//   	case FL_KEYDOWN:
+//   	  printf("\\n%d\\t%s\\t%s\\t%d\\t%s(%d)",clock(),this->label(),fl_eventnames[e],rtn,Fl::event_text(),Fl::event_key());
+//   	  break;
+//   	default:
+//   	  printf("\\n%d\\t%s\\t%s\\t%d",clock(),this->label(),fl_eventnames[e],rtn);
+//   	  break;
+//       };
+  
+  
+      return(rtn);} {}
+  }
+  Function {my000_button(int x,int y,int w, int h, const char *l):Fl_Button(x,y,w,h,l)} {open
+  } {
+    code {//printf("Hello, World!\\n");} {}
+  }
+} 
+
+class HarmonatorUI {open
+} {
+  decl {Fl_Text_Buffer about_buffer;} {private local
+  }
+  decl {Fl_Output *latch_fnc_display[4];} {public local
+  }
+  decl {Fl_Output *chord_fnc_display[4];} {public local
+  }
+  Function {HarmonatorUI(Harmonator *h):cfg_fn("")} {open
+  } {
+    Fl_Window mainWindow {
+      label Harmonator
+      private xywh {367 213 465 655} type Single selection_color 246 hide
+    } {
+      Fl_Menu_Bar main_menu {
+        xywh {0 -1 465 25} color 50
+      } {
+        Submenu {} {
+          label {&File} open
+          xywh {0 0 100 20} labelsize 14
+        } {
+          MenuItem {} {
+            label {&Open}
+            callback {char *fn;
+  int varray[4];
+  int val;
+  char buf[100];
+  char line[100];
+ //
+  if ((fn = fl_file_chooser("Load Harmonator Setup","Harmonator Setup (*.{hcf})", cfg_fn.c_str()))){
+	// save setup
+	FILE *load_file;
+	cfg_fn = fn;
+	if ((load_file=fopen(fn,"r"))!=NULL){
+
+	  while (fgets(line,sizeof(line),load_file)) {
+		printf("line: %s\\n",line);
+		if (sscanf(line,"rhythm string %s\\n",buf)){
+		  rhythm_string->value(buf);continue;
+		}
+		else if (sscanf(line,"part string %s\\n",buf)==1){
+		  part_string->value(buf);continue;
+		}
+		else if (sscanf(line,"chord_hold %d\\n",&val)==1){
+		  chord_hold->value(val);continue;
+		}
+		else if (sscanf(line,"four_part %d\\n",&val)==1){
+		  four_part->value(val);continue;
+		}
+		else if (sscanf(line,"adjust_root %d\\n",&val)==1){
+		  adjust_root->value(val);continue;
+		}
+		else if (sscanf(line,"strig_midi %d\\n",&val)==1){
+		  strig_midi->value(val);
+		  if (val){
+			lsync_now->type(FL_RADIO_BUTTON);
+			lsync_measure->type(FL_RADIO_BUTTON);
+			lsync_beat->type(FL_RADIO_BUTTON);
+		  }
+		  continue;
+		}
+
+		else if (sscanf(line,"strig_gate %d\\n",&val)==1){
+		  strig_gate->value(val);
+		  if (val){
+			lsync_now->type(FL_NORMAL_BUTTON);
+			lsync_measure->type(FL_NORMAL_BUTTON);
+			lsync_beat->type(FL_NORMAL_BUTTON);
+		  }
+		  continue;
+		}
+
+		else if (sscanf(line,"lsync_now %d\\n",&val)==1){
+		  lsync_now->value(val);
+		  continue;
+		}
+
+		else if (sscanf(line,"lsync_measure %d\\n",&val)==1){
+		  lsync_measure->value(val);
+		  continue;
+		}
+		else if (sscanf(line,"lsync_beat %d\\n",&val)==1){
+		  lsync_beat->value(val);
+		  continue;
+		}
+
+		else if (sscanf(line,"part/midi mapping %d %d %d %d\\n",varray,varray+1,varray+2,varray+3)==4){
+		  for (int i=0;i<4;i++)
+			harmonator->chan[i]=varray[i];
+		  continue;
+		}
+		else if (sscanf(line,"%[^\#0123456789 ] %d\\n",buf,&val)==2 && 
+				 strstr("rest p pp mp mf f ff",buf)){
+		  printf("buf:%s\\n",buf);
+		  harmonator->dynamics_scale[buf]=val;
+		  cout << "harmonator->dynamics_scale[" << buf << "]:" << (int)(harmonator->dynamics_scale[buf]) << endl;
+		  continue;
+		}
+		else if (sscanf(line,"beats_per_measure %d\\n",&val)==1){
+		  beats_per_measure->value(val);continue;
+		}
+		else if (sscanf(line,"pulses_per_beat %d\\n",&val)==1){
+		  harmonator->main_clock.pulses_per_beat=val;continue;
+		}
+		else if (sscanf(line,"\#%[a-zA-Z/ ]\\n",buf)==1){
+		  printf("comment: %s\\n",buf);
+		  continue;
+		}
+		else  {
+		  printf("'.hcf' parse error: %s\\n",line);
+		}
+	  }
+	  fclose(load_file);
+
+	}
+  };}
+            xywh {0 0 100 20} shortcut 0x4006f labelsize 14
+          }
+          MenuItem save_again {
+            label {&Save}
+            callback {save_configuration();}
+            xywh {0 0 100 20} shortcut 0x40073 labelsize 14 deactivate
+          }
+          MenuItem {} {
+            label {Save &As}
+            callback {//fl_file_chooser_callback(handle_save_cb);
+	char *fn;
+	//
+	if ((fn = fl_file_chooser("Save Harmonator Setup","Harmonator Setup *.{hcf}", cfg_fn.c_str()))){
+	  // save setup
+	  cfg_fn = fn;
+	  save_again->activate();
+	  save_configuration();
+	}
+	//fl_file_chooser_callback(0);}
+            xywh {0 0 100 20} shortcut 0x80073 labelsize 14
+          }
+          MenuItem {} {
+            label {&Quit}
+            callback {exit(0);}
+            xywh {0 0 100 20} shortcut 0x80071 labelsize 14
+          }
+        }
+        Submenu {} {
+          label {&Help} open
+          xywh {0 0 100 20} labelsize 14
+        } {
+          MenuItem {} {
+            label {&About}
+            callback {about->show();}
+            xywh {0 0 100 20} labelsize 14
+          }
+        }
+      }
+      Fl_Group pattern_group {
+        label {Pattern Generation} open
+        xywh {33 44 401 120} box BORDER_FRAME color 51 labeltype NO_LABEL
+      } {
+        Fl_Input rhythm_string {
+          label Rhythm
+          tooltip {(w)hole, (h)alf, (q)uarter,(e)ight, (s)ixteenth,(t)riplet eightth} xywh {111 52 316 30}
+          code0 {o->value("q,q,q,q");}
+        }
+        Fl_Input part_string {
+          label {Part String}
+          tooltip {Combinations of 'a'(lowest pitch) thru 'd'(highest-pitch)} xywh {110 87 314 30}
+          code0 {o->value("a,b,c,d");}
+        }
+        Fl_Output pattern_music_length {
+          label Length
+          tooltip {Musical time length of entered pattern} xywh {110 122 214 30}
+        }
+        Fl_Button calculate_pattern_length {
+          label Calculate
+          user_data this
+          callback event_router
+          xywh {330 122 93 30}
+        }
+      }
+      Fl_Group {} {
+        label {Input Chord}
+        xywh {34 170 400 78} box BORDER_FRAME color 51 align 20
+        code0 {o->deactivate();}
+      } {
+        Fl_Output bass {
+          label A
+          private xywh {127 194 38 35} align 1
+          code0 {o->value("*");}
+          code1 {chord_fnc_display[0]=o;}
+          code2 {o->readonly(1);}
+        }
+        Fl_Output lower {
+          label B
+          xywh {211 194 38 35} align 1
+          code0 {o->value("*");}
+          code1 {chord_fnc_display[1]=o;}
+        }
+        Fl_Output middle {
+          label C
+          xywh {295 194 38 35} align 1
+          code0 {o->value("*");}
+          code1 {chord_fnc_display[2]=o;}
+        }
+        Fl_Output upper {
+          label D
+          xywh {380 196 38 33} align 1
+          code0 {o->value("*");}
+          code1 {chord_fnc_display[3]=o;}
+        }
+      }
+      Fl_Group {} {
+        label Performance open
+        xywh {33 334 401 260} box BORDER_FRAME color 52 align 17
+      } {
+        Fl_Group {} {
+          xywh {55 408 196 35} box ROUNDED_BOX color 48 labeltype NO_LABEL
+          code0 {o->set_output();}
+        } {
+          Fl_Round_Button {} {
+            xywh {63 414 27 23} type Radio down_box ROUND_DOWN_BOX selection_color 4 labeltype NO_LABEL labelsize 24
+            code0 {metronome_lights[0]=o;}
+          }
+          Fl_Round_Button {} {
+            xywh {88 414 27 23} type Radio down_box ROUND_DOWN_BOX color 25 labeltype NO_LABEL labelsize 24
+            code0 {metronome_lights[1]=o;}
+          }
+          Fl_Round_Button {} {
+            xywh {113 414 27 23} type Radio down_box ROUND_DOWN_BOX labeltype NO_LABEL labelsize 24
+            code0 {metronome_lights[2]=o;}
+          }
+          Fl_Round_Button {} {
+            xywh {139 414 27 23} type Radio down_box ROUND_DOWN_BOX labeltype NO_LABEL labelsize 24
+            code0 {metronome_lights[3]=o;}
+          }
+          Fl_Round_Button {} {
+            xywh {164 414 27 23} type Radio down_box ROUND_DOWN_BOX labeltype NO_LABEL labelsize 24
+            code0 {metronome_lights[4]=o;}
+          }
+          Fl_Round_Button {} {
+            xywh {189 414 27 23} type Radio down_box ROUND_DOWN_BOX labeltype NO_LABEL labelsize 24
+            code0 {metronome_lights[5]=o;}
+          }
+          Fl_Round_Button {} {
+            xywh {215 414 36 23} type Radio down_box ROUND_DOWN_BOX labeltype NO_LABEL labelsize 24
+            code0 {metronome_lights[6]=o;}
+          }
+        }
+        Fl_Light_Button send_midi_click {
+          label {Midi &Click}
+          user_data this
+          callback event_router
+          tooltip {Send midi metronome clicks.} xywh {323 406 91 32}
+        }
+        Fl_Output music_clock_coord {
+          xywh {68 359 168 46} color 0 selection_color 0 labelcolor 41 textfont 1 textsize 24 textcolor 71
+          code0 {o->align();}
+          code1 {o->value("0001:01:00");}
+        }
+        Fl_Spinner beats_per_measure {
+          label {Beats Per
+Measure}
+          user_data this
+          callback event_router
+          xywh {377 354 40 35} minimum 2 maximum 7 value 4
+          code0 {beats_per_measure->value(h->main_clock.beats_per_measure);}
+        }
+        Fl_Group sample_triggering {
+          label Triggermode open
+          xywh {41 469 115 122} box BORDER_FRAME color 4
+        } {
+          Fl_Button strig_midi {
+            label Midi
+            user_data this
+            callback event_router
+            tooltip {Sample midi upon arrival.} xywh {53 476 90 30} type Radio down_box DOWN_BOX shortcut 0x79 selection_color 246
+            code0 {o->setonly();}
+          }
+          Fl_Button strig_gate {
+            label {Gated-Midi}
+            user_data this
+            callback event_router
+            tooltip {Sample midi when one of latch keys held.} xywh {53 513 90 30} type Radio down_box DOWN_BOX shortcut 0x68 selection_color 246
+          }
+          Fl_Button {} {
+            xywh {53 551 90 30} deactivate
+          }
+        }
+        Fl_Group {} {
+          label {Latch-next Event} open
+          xywh {177 469 115 122} box BORDER_FRAME color 4
+        } {
+          Fl_Button lsync_now {
+            label Now
+            user_data this
+            callback event_router
+            tooltip {Latch and arpeggiate chord now.} xywh {189 476 90 30} type Radio down_box DOWN_BOX shortcut 0x75 selection_color 246 when 1
+            code0 {o->setonly();}
+            class my000_button
+          }
+          Fl_Button lsync_measure {
+            label Measure
+            user_data this
+            callback event_router
+            tooltip {Sample chord now but arpeggiate at next measure.} xywh {189 513 90 30} type Radio down_box DOWN_BOX shortcut 0x6a selection_color 246 when 1
+            class my000_button
+          }
+          Fl_Button lsync_beat {
+            label Beat
+            user_data this
+            callback event_router
+            tooltip {Sample chord now but arpeggiate at next beat.} xywh {189 551 90 30} type Radio down_box DOWN_BOX shortcut 0x6d selection_color 246 when 1
+            class my000_button
+          }
+        }
+        Fl_Group {} {
+          label {Arp Adjustors} open
+          xywh {313 469 115 122} box BORDER_FRAME color 4
+        } {
+          Fl_Light_Button chord_hold {
+            label Hold
+            user_data this
+            tooltip {Sustain arpeggiation of chord(s).} xywh {325 476 90 30} shortcut 0x69 align 16
+          }
+          Fl_Light_Button four_part {
+            label {4 Part}
+            user_data this
+            tooltip {Convert 3 part chords to 4 parts(doubling).} xywh {325 513 90 30} shortcut 0x6b align 16
+          }
+          Fl_Light_Button adjust_root {
+            label Adjust
+            user_data this
+            tooltip {Adjust root to lowest position.} xywh {325 551 90 30} shortcut 0x2c align 16
+          }
+        }
+      }
+      Fl_Light_Button arpeggiate_switch {
+        label {&Arpeggiate}
+        user_data this
+        callback event_router
+        tooltip {Initiate arpeggiation.} xywh {54 598 108 40}
+      }
+      Fl_Button configure {
+        label {Se&ttings}
+        callback {select_24->value(harmonator->main_clock.pulses_per_beat==24?1:0);
+  select_96->value(harmonator->main_clock.pulses_per_beat==96?1:0);
+  rest->value((int)harmonator->dynamics_scale["rest"]);
+  pp->value((int)harmonator->dynamics_scale["pp"]);
+  p->value((int)harmonator->dynamics_scale["p"]);
+  mp->value((int)harmonator->dynamics_scale["mp"]);
+  mf->value((int)harmonator->dynamics_scale["mf"]);
+  f->value((int)harmonator->dynamics_scale["f"]);
+  ff->value((int)harmonator->dynamics_scale["ff"]);
+  a_channel->value(harmonator->chan[0]);
+  b_channel->value(harmonator->chan[1]);
+  c_channel->value(harmonator->chan[2]);
+  d_channel->value(harmonator->chan[3]);
+  settings->show();}
+        tooltip {Part mapping, dynamic-to-midi mappings, etc.} xywh {307 598 108 40}
+      }
+      Fl_Group {} {
+        label {Latch Chord}
+        xywh {34 251 400 78} box BORDER_FRAME color 52 align 20
+        code0 {o->deactivate();}
+      } {
+        Fl_Output latch_a {
+          label A
+          private xywh {127 275 38 35} align 1
+          code0 {o->value("*");}
+          code1 {latch_fnc_display[0]=o;}
+        }
+        Fl_Output latch_b {
+          label B
+          xywh {211 275 38 35} align 1
+          code0 {o->value("*");}
+          code1 {latch_fnc_display[1]=o;}
+        }
+        Fl_Output latch_c {
+          label C
+          xywh {295 275 38 35} align 1
+          code0 {o->value("*");}
+          code1 {latch_fnc_display[2]=o;}
+        }
+        Fl_Output latch_d {
+          label D
+          xywh {380 277 38 33} align 1
+          code0 {o->value("*");}
+          code1 {latch_fnc_display[3]=o;}
+        }
+      }
+    }
+    Fl_Window settings {
+      label Settings
+      xywh {622 304 475 325} type Single hide modal
+    } {
+      Fl_Button {} {
+        label {&Ok}
+        callback {harmonator->main_clock.pulses_per_beat = select_24->value()?24:96;
+harmonator->dynamics_scale["rest"]=midi_data(rest->value());
+harmonator->dynamics_scale["ff"]=midi_data(ff->value());
+harmonator->dynamics_scale["f"]=midi_data(f->value());
+harmonator->dynamics_scale["mf"]=midi_data(mf->value());
+harmonator->dynamics_scale["mp"]=midi_data(mp->value());
+harmonator->dynamics_scale["p"]=midi_data(p->value());
+harmonator->dynamics_scale["pp"]=midi_data(pp->value());
+harmonator->chan[0]=a_channel->value();
+harmonator->chan[1]=b_channel->value();
+harmonator->chan[2]=c_channel->value();
+harmonator->chan[3]=d_channel->value();
+settings->hide();}
+        xywh {155 285 48 25}
+      }
+      Fl_Button {} {
+        label {&Cancel}
+        callback {settings->hide();}
+        xywh {270 285 56 25}
+      }
+      Fl_Group {} {
+        label {Part Mapping} open
+        xywh {16 24 442 69} box UP_BOX align 5
+      } {
+        Fl_Spinner a_channel {
+          label A
+          xywh {116 51 52 25} align 1 maximum 16
+        }
+        Fl_Spinner b_channel {
+          label B
+          xywh {216 51 52 25} align 1 maximum 16
+        }
+        Fl_Spinner c_channel {
+          label C
+          xywh {311 51 52 25} align 1 maximum 16
+        }
+        Fl_Spinner d_channel {
+          label D
+          xywh {388 51 61 25} align 1 maximum 16
+        }
+        Fl_Box {} {
+          label {Channels
+(1-16)}
+          xywh {32 51 55 25}
+        }
+        Fl_Box {} {
+          label Parts
+          xywh {40 29 25 25}
+        }
+      }
+      Fl_Group {} {
+        label Dynamics open
+        xywh {16 112 442 82} box UP_BOX align 5
+      } {
+        Fl_Spinner rest {
+          label Rest
+          xywh {37 140 48 29} align 1 minimum 0 maximum 127 value 0
+        }
+        Fl_Spinner pp {
+          label pp
+          xywh {95 140 48 29} align 1 minimum 0 maximum 127 value 20
+        }
+        Fl_Spinner p {
+          label p
+          xywh {153 140 48 29} align 1 minimum 0 maximum 127 value 35
+        }
+        Fl_Spinner mp {
+          label mp
+          xywh {211 140 48 29} align 1 minimum 0 maximum 127 value 45
+        }
+        Fl_Spinner mf {
+          label mf
+          xywh {269 140 48 29} align 1 minimum 0 maximum 127 value 65
+        }
+        Fl_Spinner f {
+          label f
+          xywh {327 140 48 29} align 1 minimum 0 maximum 117 value 85
+        }
+        Fl_Spinner ff {
+          label ff
+          xywh {385 140 48 29} align 1 minimum 0 maximum 127 value 105
+        }
+      }
+      Fl_Group {} {
+        label {Pulses Per Beat} open
+        private xywh {16 215 442 48} box THIN_UP_BOX align 5
+      } {
+        Fl_Round_Button select_24 {
+          label 24
+          user_data this
+          callback event_router
+          private xywh {162 229 26 25} type Radio down_box ROUND_DOWN_BOX value 1
+        }
+        Fl_Round_Button select_96 {
+          label 96
+          user_data this
+          callback event_router
+          xywh {233 230 26 25} type Radio down_box ROUND_DOWN_BOX
+        }
+      }
+    }
+    code {for (int i=0; i<(int)(beats_per_measure->value());i++)
+	metronome_lights[i]->show();
+for (int i=(int)(beats_per_measure->value()); i<7;i++)
+	metronome_lights[i]->hide();
+harmonator = h;} {}
+    Fl_Window about {
+      label About
+      xywh {774 495 455 295} type Single hide modal
+    } {
+      Fl_Button {} {
+        label {&Close}
+        callback {about->hide();}
+        xywh {210 260 65 25}
+      }
+      Fl_Text_Display about_text {
+        xywh {27 16 405 225}
+      }
+    }
+    code {about_buffer.text
+  	(
+ 	 "Harmonator(copyright 2011 David W. McClanahan)\\n"
+ 	 "\\n"	
+  	 "Harmonator was developed by David W. McClanahan and utilizes the "
+  	 "C++ GUI toolkit FLTK(The Fast Light Tool Kit). For further info "
+  	 "on FLTK, visit http://www.fltk.org\\n"
+  	 "\\n"
+  	 "License\\n"
+  	 "\\n"
+  	 "Permission is hereby granted, free of charge, to any person "
+  	 "obtaining a copy of this software and associated documentation "
+  	 "files (the \\"Software\\"), to deal in the Software without "
+  	 "restriction, including without limitation the rights to use, "
+  	 "copy, modify, merge, publish, distribute, sublicense, and/or sell "
+  	 "copies of the Software, and to permit persons to whom the "
+  	 "Software is furnished to do so, subject to the following "
+  	 "conditions:\\n"
+  	 "\\n"
+  	 "The above copyright notice and this permission notice shall be "
+  	 "included in all copies or substantial portions of the Software.\\n"
+  	 "\\n"
+  	 "THE SOFTWARE IS PROVIDED \\"AS IS\\", WITHOUT WARRANTY OF ANY KIND, "
+  	 "EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES "
+  	 "OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND "
+  	 "NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT "
+  	 "HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, "
+  	 "WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING "
+  	 "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR "
+  	 "OTHER DEALINGS IN THE SOFTWARE."
+  	 );
+about_text->wrap_mode(Fl_Text_Display::WRAP_AT_BOUNDS,0);	 
+about_text->buffer(about_buffer);} {selected
+    }
+    code {sample_trigger = 0;//midi only} {}
+    Fl_Window splash {
+      label Splash open
+      xywh {524 499 330 145} type Single noborder visible
+    } {
+      Fl_Box {} {
+        label Harmonator
+        xywh {23 5 290 45} labelsize 24
+      }
+      Fl_Box {} {
+        label {Copyright 2011 David W. McClanahan}
+        xywh {155 50 25 25}
+      }
+      Fl_Box {} {
+        label {See Licensing in "Help/About" Menuselect}
+        xywh {25 75 290 45}
+      }
+    }
+  }
+  Function {show(int argc, char **argv)} {} {
+    code {Fl::visual(FL_DOUBLE|FL_INDEX);
+mainWindow->show(argc,argv);} {}
+  }
+  decl {Fl_Output* chord_functions[4];} {private local
+  }
+  Function {event_router(Fl_Widget *w, void* data)} {open return_type {static void}
+  } {
+    code {HarmonatorUI *hui = ((HarmonatorUI *)data);
+    typedef void (*CB_HDLR)(Fl_Widget *w, void* data);
+    CB_HDLR hdlr=(CB_HDLR)(hui->harmonator_event_callback);
+	try {
+	  hdlr(w,(void *)(hui->harmonator));
+	}
+    	catch (Harmonator::rhythm_parse_exception rpe){
+		  Fl_Color bg=hui->rhythm_string->color();
+  	  hui->rhythm_string->color(FL_LIGHT1);
+  	  hui->rhythm_string->redraw();
+  	  Fl::wait(1);
+  	  hui->rhythm_string->color(bg);
+    	  hui->rhythm_string->position(rpe.cp);
+  	  hui->rhythm_string->redraw();
+    	  hui->rhythm_string->take_focus();
+    	}
+    	catch (Harmonator::voice_parse_exception vpe){
+		  Fl_Color bg=hui->part_string->color();
+    	  hui->part_string->color(FL_LIGHT1);
+    	  hui->part_string->redraw();
+    	  Fl::wait(1);
+    	  hui->part_string->color(bg);
+    	  hui->part_string->position(vpe.cp);
+  	  hui->part_string->redraw();
+    	  hui->part_string->take_focus();
+    	}} {}
+  }
+  decl {Fl_Round_Button *metronome_lights[7];} {private local
+  }
+  Function {update_metronome()} {return_type void
+  } {
+    code {//   if (!midi_clock_counter){
+//   	metronome_lights[0]->value(1);
+//   	metronome_lights[1]->value(0);
+//   	metronome_lights[2]->value(0);
+//   	metronome_lights[3]->value(0);
+//   	if (send_midi_click->value()){
+//   	  this->send_midi_note(9,33,110);
+//   	  this->send_midi_note(9,34,75);
+//   	}
+//     }
+//     else if (!(midi_clock_counter % pulses_per_beat)){
+//   	if (send_midi_click->value())
+//   	  this->send_midi_note(9,33,80);// chn 10, ? ,vel=84
+  
+//   	switch (midi_clock_counter / pulses_per_beat){
+//     	case 1:
+//     	  metronome_lights[1]->value(1);
+//     	  break;
+//     	case 2:
+//     	  metronome_lights[2]->value(1);
+//     	  break;
+//     	case 3:
+//     	  metronome_lights[3]->value(1);
+//     	  metronome_lights[0]->value(0);
+//     	  break;
+//     	};
+//     }} {}
+  }
+  decl {int pulses_per_beat;} {private local
+  }
+  class Instrument_Element {open
+  } {}
+  Function {register_fd_handler(int fd, void (*handlr)(int, void *))} {open return_type void
+  } {
+    code {Fl::add_fd(fd,handlr, (void*)(this->harmonator));} {}
+  }
+  Function {loop_gui()} {return_type int
+  } {
+    code {return(Fl::run());} {}
+  }
+  Function {install_cb(void *cb)} {open return_type void
+  } {
+    code {this->harmonator_event_callback = cb;} {}
+  }
+  decl {void *harmonator_event_callback;} {private local
+  }
+  decl {Harmonator *harmonator;} {public local
+  }
+  Function {update_metronome_display(const char *control)} {open return_type void
+  } {
+    code {assert(strlen(control)<=7);
+  for (unsigned int i=0;i<strlen(control);i++)
+	switch(control[i]){
+	case '+':
+	  metronome_lights[i]->value(1);
+	  break;
+	case '-':
+	  metronome_lights[i]->value(0);
+	  break;
+	default:
+	  break;
+	};} {}
+  }
+  decl {friend class Harmonator;} {private local
+  }
+  Function {handle_open_cb(const char *fn)} {
+    comment {Handles opening configuration file} private return_type {static void}
+  } {
+    code {printf("stub: open\\n");} {}
+  }
+  Function {handle_save_cb(const char *fn)} {
+    comment {Handles saving configuration file} private return_type {static void}
+  } {
+    code {printf("stub:save\\n");} {}
+  }
+  decl {string cfg_fn;} {public local
+  }
+  Function {save_configuration()} {open private return_type void
+  } {
+    code {FILE *save_file;
+    if ((save_file=fopen(cfg_fn.c_str(),"w"))!=NULL){
+  	fprintf(save_file,"\# Configuration File for Harmonator Arpeggiator\\n");
+  	fprintf(save_file,"rhythm string %s\\n",rhythm_string->value());
+  	fprintf(save_file,"part string %s\\n",part_string->value());
+  	fprintf(save_file,"chord_hold %d\\n",chord_hold->value());
+  	fprintf(save_file,"four_part %d\\n",four_part->value());
+  	fprintf(save_file,"adjust_root %d\\n",adjust_root->value());
+  	fprintf(save_file,"strig_midi %d\\n",strig_midi->value());
+  	fprintf(save_file,"strig_gate %d\\n",strig_gate->value());
+  	fprintf(save_file,"lsync_now %d\\n",lsync_now->value());
+  	fprintf(save_file,"lsync_measure %d\\n",lsync_measure->value());
+  	fprintf(save_file,"lsync_beat %d\\n",lsync_beat->value());
+  	fprintf(save_file,"part/midi mapping");
+  	for (int i=0;i<4;i++)
+  	  fprintf(save_file," %d",harmonator->chan[i]);
+  	fprintf(save_file,"\\n");
+  	fprintf(save_file,"\# dynamics/midi mappings\\n");
+  	fprintf(save_file,"rest %d\\n",(int)(harmonator->dynamics_scale["rest"]));
+  	fprintf(save_file,"pp %d\\n",(int)(harmonator->dynamics_scale["pp"]));
+  	fprintf(save_file,"p %d\\n",(int)(harmonator->dynamics_scale["p"]));
+  	fprintf(save_file,"mp %d\\n",(int)(harmonator->dynamics_scale["mp"]));
+  	fprintf(save_file,"mf %d\\n",(int)(harmonator->dynamics_scale["mf"]));
+  	fprintf(save_file,"f %d\\n",(int)(harmonator->dynamics_scale["f"]));
+  	fprintf(save_file,"ff %d\\n",(int)(harmonator->dynamics_scale["ff"]));
+  	fprintf(save_file,"\# tempo/anacrusis\\n");
+  	fprintf(save_file,"beats_per_measure %u\\n",(unsigned int)(beats_per_measure->value()));
+  	fprintf(save_file,"pulses_per_beat %d\\n",harmonator->main_clock.pulses_per_beat);
+  	fclose(save_file);
+    }
+    // free fn???} {}
+  }
+  Function {configure_for_arp()} {
+    comment {deactivate select widgets and change some shortcuts} open return_type void
+  } {
+    code {configure->deactivate();
+  pattern_group->deactivate();
+  beats_per_measure->deactivate();
+  
+  // save current shortcuts but while arping remove modifiers to allow single key control
+  
+  hold_shortcut = chord_hold->shortcut();
+  chord_hold->shortcut(hold_shortcut & 0xff);
+  four_part_shortcut = four_part->shortcut();
+  four_part->shortcut(four_part_shortcut & 0xff);
+  adjust_root_shortcut = adjust_root->shortcut();
+  adjust_root->shortcut(adjust_root_shortcut & 0xff);} {}
+  }
+  decl {int hold_shortcut,four_part_shortcut,adjust_root_shortcut;} {
+    comment {to restore shortcuts after arp} private local
+  }
+  Function {restore_after_arp()} {
+    comment {restore gui cfg after arp has been disabled} open return_type void
+  } {
+    code {configure->activate();
+pattern_group->activate();
+beats_per_measure->activate();
+chord_hold->shortcut(hold_shortcut);
+four_part->shortcut(four_part_shortcut);
+adjust_root->shortcut(adjust_root_shortcut);} {}
+  }
+  decl {int sample_trigger;} {
+    comment {designates whether triggering on midi alone or along with a gating keypress} public local
+  }
+  decl {int latch_sync;} {
+    comment {designates what event to sync sampled chord to} public local
+  }
+  Function {set_latch_button_type(bool radio=true)} {open return_type void
+  } {
+    code {lsync_now->type(radio?FL_RADIO_BUTTON:FL_NORMAL_BUTTON); 
+  lsync_beat->type(radio?FL_RADIO_BUTTON:FL_NORMAL_BUTTON); 
+  lsync_measure->type(radio?FL_RADIO_BUTTON:FL_NORMAL_BUTTON);} {}
+  }
+} 

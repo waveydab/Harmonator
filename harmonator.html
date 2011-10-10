@@ -1,0 +1,284 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
+<title>Harmonator</title>
+</head>
+
+<body>
+<h1>Introduction</h1>
+<p><i>Harmonator</i> is a simple arpeggiator intended to take a previous program(Stratasynch) in a different direction-into a live performance tool. As an arpeggiator it does not have as many features integrated within it as others appear to. On the other hand, I have endeavoured to design it the goal of cooperation with other midi programs within Alsa.
+</p>
+<h1>Features</h1>
+<ul>
+<li>Arpeggiates pitch aggregates including standard triads(major,minor,etc) and various flavors of 7th chord. Outputs upto a 4 part arpeggiation for standard chords</li>
+<li>Convert 3-part chords to 4-part</li>
+<li>Adjusts root to bass position(lowest part)</li>
+<li>Coordinate pressed chord to beat, measure</li>
+<li>Visual/audio metronome</li>
+<li>Each part output on separate midi channel</li>
+<li>Dynamics control(loudness/softness). Adjustable</li>
+<li>Selectable &quot;chord played&quot; detection</li>
+<li>Rhythm and instrumental form separate</li>
+<li>Selectable midi clock counts per beat</li>
+</ul>
+<h1>Requirements</h1>
+<p>Running <i>Harmonator</i> requires a Linux system with Alsa. Additional requirements are necessary to build it(see included INSTALL file)
+</p>
+<ul>
+<li>A midi clock(Program/hardware which outputs &quot;clock ticks&quot; which other programs synchronize to). A software midi clock is included.</li>
+<li>A midi keyboard.</li>
+<li>A hardware or software synth.</li>
+<li>Familiarity with Linux and Alsa midi components.</li>
+<li>Knowledge of midi and midi connections.</li>
+</ul>
+<p>I want to strongly suggest that <i><b>if you're a newbie to Linux and/or Alsa set Harmonator aside and learn those first.</b></i></p>
+<h1>Tutorial</h1>
+This tutorial uses my setup. Your's is probably different but a concrete example helps so...
+<h2>Startup</h2>
+<p><i>Harmonator</i> is but a component in an overall setup which requires a midiclock, a synth, and a midi keyboard. How these get hooked together depends upon specific properties and connections between these components. For example, for many the keyboard and synth will be the same so the midi stream will not only connected from the keyboard to <i>Harmonator</i>(via a host computer), it will also have to be cycled back to the keyboard's onboard synth. At the very least, it will require commanding the Alsa system to connect some components such as connecting a software midiclock to <i>Harmonator</i> and <i>Harmonator</i> to a software synth or a hardware port connected to a standalone synth.
+</p>
+<ol>
+  <li>Connect your midi keyboard to the computer.</li>
+  <p>I connect a keyboard to Roland sound module and use its PC connection and <i>midi thru</i>  functionality to connect to the PC's serial port. On a setup with a soundcard or equivalent, you'll probably have a raw midi port which is accessible with the <i><u>aconnect</u></i> command.</p>
+  <li>Configure serial port baudrate to match Roland</li>
+  <p><i><u>setserial /dev/ttyS0 uart none</u></i></>
+  <li>Load Alsa's snd-serial module</li>
+  <p><i><u>modprobe snd-serial-u16550 port=0x3f8 irq=4 speed=38400</u></i></>
+  <p>Creates a midi interface via the serial port</p>
+  <li>Run <i>Harmonator</i></li>
+  <p><i><u>harmonator</u></i></>
+  <li>Hook in the a midiclock</li>
+  <p><i><u>midiclock</u></i></p>
+  <p><i><u>aconnect midiclock harmonator</u></i></p>
+  <p>This command logically connects 2 programs via the Alsa sequencer. Configure the midiclock generator rate(pulses per beat)</p>
+  <li>Run the soft synth and connect <i>Harmonator</i> to it</li>
+  <p><i><u>fluidsynth --server /home/dwm/bennetng_AnotherGS_v2-0.sf2</u></i></p>
+  <p><i><u>aconnect harmonator fluidsynth</u></i></p>
+  <li><a href="#settings" >Configure Harmonator</a></li>
+</ol>
+<h2>Specify Rhythmic and Part(Voice) Sequences</h2>
+<p>Arpeggiation requires a rhythm, a voicing, and a played chord. Rhythm and voicing sequences must be entered aforehand and the chords entered while playing.
+</p>
+<ol>
+  <li>Specify a <a href="#Rhythm_Sequence" >rhythm pattern</a></li>
+  <li>Specify a <a href="#Part_Sequence" >voice pattern</a></li>
+</ol>
+<p>It is suggested that entered patterns recur on a measure boundary. For example, the rhythmic pattern <b>q,e,e</b> and part sequence <b>a,b,a,c</b> will recur every 4 measures. This is not a requirement but it does tend to give a sense of metrical accent. Utilize the <a href="#synclength" >Pattern Synchronization</a> to acheive this.
+</p>
+<h1>Functions</h1>
+<h2><a  name="Rhythm_Sequence">Rhythm Sequence</a></h2>
+<p>Specify a rhythm by entering a string of comma-separated terms. The first part of each term is a duration while the second part is a dynamic. Duration is one or more of the following symbols and is calculated a sum of the values used.
+</p>
+<table width="65%" align="center" border="" width="">
+  <TR>
+  <TH rowspan="" colspan="">Symbol
+</TH>
+  <TH rowspan="" colspan="">Name
+</TH>
+  <TH rowspan="" colspan="">Quarter Note Equivalent
+</TH>
+</TR>
+<TR>
+  <TD align="" colspan="">w</TD>
+  <TD align="" colspan="">whole note</TD>
+  <TD align="" colspan="">4</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">h</TD>
+  <TD align="" colspan="">half note</TD>
+  <TD align="" colspan="">2</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">q</TD>
+  <TD align="" colspan="">quarter note</TD>
+  <TD align="" colspan="">1</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">e</TD>
+  <TD align="" colspan="">eighth note</TD>
+  <TD align="" colspan="">1/2</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">s</TD>
+  <TD align="" colspan="">sixteenth note</TD>
+  <TD align="" colspan="">1/4</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">t</TD>
+  <TD align="" colspan="">triplet eighth note</TD>
+  <TD align="" colspan="">1/3</TD>
+</TR>
+</table>
+<p>An optional dynamic value may follow the duration.
+</p>
+<table width="65%" align="center" border="" width="">
+<TR>
+  <TH rowspan="" colspan="">Symbol
+</TH>
+  <TH rowspan="" colspan="">Loudness
+</TH>
+  <TH rowspan="" colspan="">Default Midi Value
+</TH>
+</TR>
+<TR>
+  <TD align="" colspan="">r</TD>
+  <TD align="" colspan="">rest</TD>
+  <TD align="" colspan="">0</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">ff</TD>
+  <TD align="" colspan="">very loud</TD>
+  <TD align="" colspan="">105</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">f</TD>
+  <TD align="" colspan="">loud</TD>
+  <TD align="" colspan="">85</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">mf</TD>
+  <TD align="" colspan="">moderately loud</TD>
+  <TD align="" colspan="">65</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">mp</TD>
+  <TD align="" colspan="">moderately soft</TD>
+  <TD align="" colspan="">45</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">p</TD>
+  <TD align="" colspan="">soft</TD>
+  <TD align="" colspan="">35</TD>
+</TR>
+<TR>
+  <TD align="" colspan="">pp</TD>
+  <TD align="" colspan="">very soft</TD>
+  <TD align="" colspan="">20</TD>
+</TR>
+</table>
+<ul>
+  <li>
+  <b>q,h,q</b> Quarter, half, quarter sequence at the default loudness(f)
+</li>
+<li><b>q,qr,h</b> Quarter, quarter silent(rest), and a half.</li>
+<li><b>qe,eq,h</b> A duration equal to a quarter and an eighth(dotted quarter), dotted quarter except symbols reversed, and a half all at the default loudness.</li>
+</ul>
+<h2><a  name="Part_Sequence">Part Sequence</a></h2>
+<p>A sequence of comma-separated terms combining one or more letters from the set <b><i>a</i></b> thru <b><i>d</i></b>. During arpeggiation each letter maps from the lowest to the highest tone of the current pitch assemblage(as displayed in the <a href="#input_latch" >Latched Chord</a>) which is either that received from the keyboard or adjusted according to settings such a <a href="#root_adjust" >root adjust</a>.</p><br>
+<p>The following examples refer to a <b>C major</b>(chord functions C,E, and G) in root(C on the bottom, then E, )</p>
+<ul>
+  <li><b>a,b,c</b> Play note C,E, and then G sequentially.</li>
+  <li><b>ab,ac</b> Play harmonic interval CE, the CG.</li>
+  <li><b>b,ca,a</b> Play E,CG, and then C</li>
+</ul>
+<p>For these examples, a <b>C7</b> chord is  played in 2nd inversion i.e. G,Bb,C,E. The root adjust modifier is enabled.
+</p>
+<ul>
+  <li><b>a,b,c</b></li> Sequence C,G,Bb is played.
+  <li><b>cd,ca,bc</b></li> Sequence combinations (Bb,E),(C,Bb), (G,Bb)
+  <li><b>ab,ad,bcd</b></li> Sequence combinations (C,G),(C,E), (G,Bb,E)
+</ul>
+<h2><a  name="synclength">Pattern Synchronization Length</a></h2>
+<p><i>Harmonator</i> maps each element of the rhythm sequence to the voice sequence forming the basis of the arpeggiation. While <i>Harmonator</i> allows freedom in pattern definition, often aesthetically pleasing ones reinforce a sense of metric flow i.e. a complete pattern is measure length. The synchronization length is intended to facilitate measure-length patterns.</p>
+<h2><a  name="input_latch">Input Chord and Latched Chord</a></h2>
+<p>Shows midi values for the pitch aggregate received from the keyboard and the aggregate after input has passed thru operations such as <a href="#4_Part" >4 part</a> midi values currently utilized for generating the arpeggiation pattern(Latched Chord). They differ according to the settings/controls. For instance, if the control latch at next measure is enabled, the latched values will differ.
+</p>
+<h2>Performance Group</h2>
+<p>To better facilitate live performance, single-key shortcuts(accelerators) are defined for the following functions and most are clustered as below on the Qwerty keyboard. While the pattern textboxes have focus, an <b>alt</b> prefix is required.</p>
+<table border="" width="65%" align="center">
+  <TR><TD align="" colspan=""><b>Y</b> Midi Triggering</TD><TD align="" colspan=""><b>U</b> Latch Now</TD><TD align="" colspan=""><b>I</b> Hold</TD>
+</TR>
+  <TR><TD align="" colspan=""><b>H</b> Gated-Midi Triggering</TD><TD align="" colspan=""><b>J</b> Latch On Measure</TD><TD align="" colspan=""><b>K</b> 4-Part</TD>
+    <TR><TD align="" colspan=""><b>N</b> Unused</TD><TD align="" colspan=""><b>M</b> Latch On Beat</TD><TD align="" colspan=""><b>&lt;</b> Adjust</TD>
+</TR>
+</table>
+<h3>Metronome</h3>
+<p>A visual and switched audible is available. It sends clicks to your synth on the standard midi channel 10. An anacrusis should be selected.
+</p>
+<h3>Trigger</h3>
+<p>Selects how <i>Harmonator</i> is signaled that a chord is available. <b>Midi</b> means proceed with chord as soon as input. <b>Gate</b> requires a midi chord and pressing one of the functions in the <b>Latch-next</b> group. Gating allows interleaved play of melody and harmony simultaneously. Chords are not necessarily arpeggiated immediately(i.e. latched). The <b>Latch-next</b> when arpeggiation of a chord commences.
+</p>
+<h3>Latch-next</h3>
+<p>Once <i>Harmonator</i> has detected a chord press, arpeggiation with that chord can begin <b>Now</b>, at the beginning of the next <b>Measure</b>, or at the next <b>Beat</b>.
+</p>
+<h3>Arp Adjustors</h3>
+<p>Implements modifications intended to allow easier playing. <b>Hold</b> sustains arpeggiation of a latched chord even if released on the keyboard. <b><a  name="4_Part">4 Part</a></b> will attempt to add a 4th part(typically root) to 3 part chords it detects.
+</p>
+<table width="65%" align="center" border="" width="">
+  <TR>
+	<TH rowspan="" colspan="">
+	  Chord/Assemblage
+</TH>
+<TH rowspan="" colspan="">
+  Adjusted Chord/Assemblage
+</TH>
+</TR>
+  <TR>
+	<TD align="" colspan="">CEG</TD>
+	<TD align="" colspan="">C(down 1 octave)CEG</TD>
+</TR>
+  <TR>
+	<TD align="" colspan="">EGC</TD>
+	<TD align="" colspan="">EGCE(octave higher)</TD>
+</TR>
+</table>
+
+
+<p><b><a  name="root_adjust">Adjust</a></b> adjusts detected chords so the root is bottom tone. Apart from freeing the player from explicitly playing root position, it also gives slightly different results depending on the input chord inversion.
+</p>
+<p>4 part is disable for these examples.
+</p>
+<table width="65%" align="center" border="" width="">
+    <TR>
+	<TH rowspan="" colspan="">
+	  Chord/Assemblage
+</TH>
+<TH rowspan="" colspan="">
+  Adjusted Chord/Assemblage
+</TH>
+</TR>
+  <TR>
+	<TD align="" colspan="">CEG</TD>
+	<TD align="" colspan="">CEG</TD>
+</TR>
+  <TR>
+	<TD align="" colspan="">EGC</TD>
+	<TD align="" colspan="">CEG(octave higher)</TD>
+</TR>
+  <TR>
+	<TD align="" colspan="">EGBbC</TD>
+	<TD align="" colspan="">C(octave lower)EGBb</TD>
+</TR>
+  <TR>
+	<TD align="" colspan="">BbCEG</TD>
+	<TD align="" colspan="">C(octave lower)BbEG</TD>
+</TR>
+</table>
+<p>4 part enabled
+</p>
+<table width="65%" align="center" border="" width="">
+  <TR>
+	<TH rowspan="" colspan="">
+	  Chord/Assemblage
+</TH>
+<TH rowspan="" colspan="">
+  Adjusted Chord/Assemblage
+</TH>
+</TR>
+  <TR>
+	<TD align="" colspan="">CEG</TD>
+	<TD align="" colspan="">C(octave lower)CEG</TD>
+</TR>
+  <TR>
+	<TD align="" colspan="">GCE</TD>
+	<TD align="" colspan="">C(octave lower)GCE</TD>
+</TR>
+</table>
+<h3><a  name="settings">Settings</a></h3>
+<p><b>Part Mapping</b> maps a voice in the arpeggiation to a midi channel. This allows arpeggiation on a single voice or some combination of multiple voices dependent upon your synth programming. <b>Dynamics</b> maps the standard musical symbols such as forte to a midi volume value. <b>Pulses per beat</b> defines the number of midi clocks that <i>Harmonator</i> treats as a beat.
+</p>
+<hr>
+<address></address>
+<!-- hhmts start -->Last modified: Tue Oct  4 20:48:05 EDT 2011 <!-- hhmts end -->
+</body> </html>

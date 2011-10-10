@@ -1,0 +1,183 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0300 
+header_name {.h} 
+code_name {.cxx}
+decl {\#include <sys/time.h>} {public global
+} 
+
+decl {\#include <signal.h>} {public global
+} 
+
+decl {\#include <assert.h>} {public global
+} 
+
+decl {\#include <alsa/asoundlib.h>} {public global
+} 
+
+decl {MIDIClock midi_clock;} {private global
+} 
+
+class MIDIClock {open
+} {
+  Function {toggle(int enable=1)} {
+    comment {Enable/disable sending of midi clock signals} open
+  } {
+    code {float pulse_period;
+      if (enable){
+    	struct itimerval itv;
+    
+    	pulse_period = 1.0/(tempo * (1.0/60.0) * pulses_per_beat);
+      	clock_period.tv_sec = (int)pulse_period;
+      	clock_period.tv_usec = 1000000 *(pulse_period-clock_period.tv_sec);
+    	itv.it_interval=itv.it_value=clock_period;
+    	signal (SIGALRM, alarm_handler); //to enable clock
+  	assert(setitimer(ITIMER_REAL,&itv,NULL)==0);// set alarm timer interval
+      } else {  	signal (SIGALRM, SIG_IGN); //replace default handler
+      }} {}
+  }
+  Function {set_tempo(int tempovalue)} {open
+  } {
+    code {assert(45<=tempovalue<=250);
+tempo = tempovalue;} {}
+  }
+  Function {set_pulses_per_beat(int pending_pulses_per_beat)} {open
+  } {
+    code {assert(pending_pulses_per_beat == 24 || pending_pulses_per_beat);
+pulses_per_beat = pending_pulses_per_beat;} {}
+  }
+  Function {MIDIClock()} {open
+  } {
+    code {tempo=120;
+  pulses_per_beat = 24;
+
+
+  // create alsa plumbing-just an subscriable output port
+  if (snd_rawmidi_open (NULL,&rawmidi_handle,"virtual",SND_RAWMIDI_SYNC) < 0) {
+	fprintf(stderr, "Error opening clock port.\\n");
+	exit(1);
+  }} {}
+  }
+  decl {struct timeval clock_period;} {private local
+  }
+  decl {int tempo;} {private local
+  }
+  decl {int pulses_per_beat;} {private local
+  }
+  Function {catch_alarm(int sig)} {
+    comment {Handler for alarm signal} open selected return_type void
+  } {
+    code {unsigned char ch=0xf8;
+  snd_rawmidi_write(rawmidi_handle,&ch,1);} {}
+  }
+  decl {snd_seq_t* seq_handle;} {
+    comment {handle to alsa sequencer} private local
+  }
+  decl {int midi_out_port;} {private local
+  }
+  decl {snd_rawmidi_t *rawmidi_handle} {private local
+  }
+} 
+
+class UserInterface {open
+} {
+  Function {UserInterface()} {open
+  } {
+    Fl_Window mainWindow {
+      label {MIDI Clock} open
+      xywh {484 778 270 165} type Single visible
+    } {
+      Fl_Value_Slider Tempo {
+        label {Tempo(bpm)}
+        private xywh {205 15 45 130} type {Vert Knob} minimum 45 maximum 250 step 1 value 120
+      }
+      Fl_Light_Button {} {
+        label Enable
+        user_data this
+        callback event_cb_entry
+        xywh {27 109 118 31}
+      }
+      Fl_Group pulses_per_beat {open
+        private xywh {25 20 170 75}
+      } {
+        Fl_Round_Button {} {
+          label {24 Clocks Per Beat}
+          user_data this
+          callback event_cb_entry
+          xywh {30 30 25 25} type Radio down_box ROUND_DOWN_BOX value 1
+        }
+        Fl_Round_Button {} {
+          label {96 Clocks Per Beat}
+          user_data this
+          callback event_cb_entry
+          xywh {30 60 25 20} type Radio down_box ROUND_DOWN_BOX
+        }
+      }
+    }
+  }
+  Function {show(int argc, char **argv)} {open
+  } {
+    code {mainWindow->show(argc,argv);} {}
+  }
+  Function {event_cb_entry(Fl_Widget *w,void *data)} {open return_type {static void}
+  } {
+    code {((UserInterface *)data)->event_cb(w);} {}
+  }
+  Function {event_cb(Fl_Widget *w)} {open private return_type void
+  } {
+    code {if (strcmp(w->label(),"Enable")==0){
+  	// if enable button on, disable other controls otherwise enable them
+  	if (((Fl_Light_Button *)w)->value()){
+  	  pulses_per_beat->deactivate();
+	  Tempo->deactivate();
+	  midi_clock.set_tempo(Tempo->value());
+  	  midi_clock.toggle();
+  	} else {
+  	  midi_clock.toggle(0);
+  	  pulses_per_beat->activate();
+	  Tempo->activate();
+	}
+  }
+  else if (strcmp(w->label(),"24 Clocks Per Beat")==0){
+	midi_clock.set_pulses_per_beat(24);
+  }
+  else if (strcmp(w->label(),"96 Clocks Per Beat")==0){
+	midi_clock.set_pulses_per_beat(96);  
+  }} {}
+  }
+} 
+
+Function {main(int argc, char **argv)} {open return_type int
+} {
+  code {int npfd=0;
+  struct pollfd* pfd;
+  
+  UserInterface *hui=new UserInterface;
+  
+  // open alsa client
+  //hui->open_seq();
+  
+  /* I'm guessing this is the number of sequencer input ports */
+  //npfd = snd_seq_poll_descriptors_count(hui->seq_handle, POLLIN);
+  
+  // Extract file descriptors from alsa plumbing and pass on to fltk
+  // event plumbing which seems to use the 'select' mechanism
+  //pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
+  //snd_seq_poll_descriptors(hui->seq_handle, pfd, npfd, POLLIN);
+  
+//   for (int i = 0; i < npfd; i++)
+//     {
+//   	// this form looks for POLLIN events
+//   	Fl::add_fd(pfd[i].fd, HandleAlsaPort, (void*)hui); 
+//     }
+  //tbd: need change????
+  	  Fl::visual(FL_DOUBLE|FL_INDEX);
+  
+  	hui->show(argc, argv);
+  
+  return Fl::run();} {}
+} 
+
+Function {alarm_handler(int sig)} {open return_type void
+} {
+  code {midi_clock.catch_alarm(sig);} {}
+} 
