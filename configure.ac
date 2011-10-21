@@ -14,6 +14,14 @@ AC_CONFIG_HEADERS([config.h])
 AC_LANG([C++])
 AC_PROG_CXX()
 
+
+AC_ARG_VAR(
+	[browser],
+	[Specify browser exefile or exefile path]
+)
+
+
+
 # Disable library version checking
 AC_ARG_ENABLE(
 	[library_version_check],
@@ -346,16 +354,26 @@ rm $temp_fifo
 
 
 # define some build variables
+if test "x${browser}" != x; then # string 'browser' 
+if test -x "${browser}"; then
+echo foo > /dev/null
+elif which "${browser}" > /dev/null; then
+browser=$(which $browser)
+fi
+fi 
+
+
+
 
 LDFLAGS=$(fltk-config --ldflags | perl -e 'while (<>){if ($_ =~ m/(-L.+?)\s+-l/){print $1;}}')
 LIBS=$(fltk-config --ldflags | perl -e 'while (<>){if ($_ =~ m/(-l.+)/){print $1;}}')
 LIBS="$LIBS -lasound"
-[CPPFLAGS="$(fltk-config --cxxflags) -DDATADIR=\"${datadir}\""]
+[CPPFLAGS="$(fltk-config --cxxflags) -DDATADIR=\"${datadir}/harmonator/samples\""]
 # add a switch to enable the testing entry
 #CXXFLAGS='-g -O'
 [if [[ "${test_configuration}" == "yes" ]] ; then]
 [CXXFLAGS='-g -coverage -pg'] # dbg, coverage instr, etc.
-[CPPFLAGS="$CPPFLAGS -DHARMONATOR_TEST -DDATADIR=\"${datadir}\""]
+[CPPFLAGS="$CPPFLAGS -DHARMONATOR_TEST -DDATADIR=\"${datadir}/harmonator/samples\""]
 [LIBS="$LIBS -lcppunit"]
 [fi]
 

@@ -17,6 +17,9 @@ decl {\#include <assert.h>} {private local
 decl {\#include <search.h>} {private local
 } 
 
+decl {\#include <getopt.h>} {private local
+} 
+
 decl {\#include <alsa/asoundlib.h>} {public local
 } 
 
@@ -24,6 +27,9 @@ decl {\#include <FL/names.h>} {public global
 } 
 
 decl {\#include <FL/Fl_File_Chooser.H>} {public global
+} 
+
+decl {\#include <FL/Fl_Help_Dialog.H>} {public global
 } 
 
 decl {\#include "harmonator.h"} {public global
@@ -36,6 +42,18 @@ decl {class Harmonator;} {public global
 } 
 
 decl {using namespace std;} {public global
+} 
+
+decl {\#ifdef DATADIR} {private global
+} 
+
+decl {\#define QT(x) \#x} {private global
+} 
+
+decl {\#define DD(x) QT(x)} {private global
+} 
+
+decl {\#endif} {private global
 } 
 
 class my000_button {: {public Fl_Button}
@@ -97,10 +115,10 @@ class HarmonatorUI {open
   Function {HarmonatorUI(Harmonator *h):cfg_fn("")} {open
   } {
     Fl_Window mainWindow {
-      label Harmonator
-      private xywh {367 213 465 655} type Single selection_color 246 hide
+      label Harmonator open
+      private xywh {210 242 465 655} type Single selection_color 246 hide
     } {
-      Fl_Menu_Bar main_menu {
+      Fl_Menu_Bar main_menu {open
         xywh {0 -1 465 25} color 50
       } {
         Submenu {} {
@@ -109,100 +127,14 @@ class HarmonatorUI {open
         } {
           MenuItem {} {
             label {&Open}
-            callback {char *fn;
-  int varray[4];
-  int val;
-  char buf[100];
-  char line[100];
- //
-  if ((fn = fl_file_chooser("Load Harmonator Setup","Harmonator Setup (*.{hcf})", cfg_fn.c_str()))){
-	// save setup
-	FILE *load_file;
-	cfg_fn = fn;
-	if ((load_file=fopen(fn,"r"))!=NULL){
-
-	  while (fgets(line,sizeof(line),load_file)) {
-		printf("line: %s\\n",line);
-		if (sscanf(line,"rhythm string %s\\n",buf)){
-		  rhythm_string->value(buf);continue;
-		}
-		else if (sscanf(line,"part string %s\\n",buf)==1){
-		  part_string->value(buf);continue;
-		}
-		else if (sscanf(line,"chord_hold %d\\n",&val)==1){
-		  chord_hold->value(val);continue;
-		}
-		else if (sscanf(line,"four_part %d\\n",&val)==1){
-		  four_part->value(val);continue;
-		}
-		else if (sscanf(line,"adjust_root %d\\n",&val)==1){
-		  adjust_root->value(val);continue;
-		}
-		else if (sscanf(line,"strig_midi %d\\n",&val)==1){
-		  strig_midi->value(val);
-		  if (val){
-			lsync_now->type(FL_RADIO_BUTTON);
-			lsync_measure->type(FL_RADIO_BUTTON);
-			lsync_beat->type(FL_RADIO_BUTTON);
-		  }
-		  continue;
-		}
-
-		else if (sscanf(line,"strig_gate %d\\n",&val)==1){
-		  strig_gate->value(val);
-		  if (val){
-			lsync_now->type(FL_NORMAL_BUTTON);
-			lsync_measure->type(FL_NORMAL_BUTTON);
-			lsync_beat->type(FL_NORMAL_BUTTON);
-		  }
-		  continue;
-		}
-
-		else if (sscanf(line,"lsync_now %d\\n",&val)==1){
-		  lsync_now->value(val);
-		  continue;
-		}
-
-		else if (sscanf(line,"lsync_measure %d\\n",&val)==1){
-		  lsync_measure->value(val);
-		  continue;
-		}
-		else if (sscanf(line,"lsync_beat %d\\n",&val)==1){
-		  lsync_beat->value(val);
-		  continue;
-		}
-
-		else if (sscanf(line,"part/midi mapping %d %d %d %d\\n",varray,varray+1,varray+2,varray+3)==4){
-		  for (int i=0;i<4;i++)
-			harmonator->chan[i]=varray[i];
-		  continue;
-		}
-		else if (sscanf(line,"%[^\#0123456789 ] %d\\n",buf,&val)==2 && 
-				 strstr("rest p pp mp mf f ff",buf)){
-		  printf("buf:%s\\n",buf);
-		  harmonator->dynamics_scale[buf]=val;
-		  cout << "harmonator->dynamics_scale[" << buf << "]:" << (int)(harmonator->dynamics_scale[buf]) << endl;
-		  continue;
-		}
-		else if (sscanf(line,"beats_per_measure %d\\n",&val)==1){
-		  beats_per_measure->value(val);continue;
-		}
-		else if (sscanf(line,"pulses_per_beat %d\\n",&val)==1){
-		  harmonator->main_clock.pulses_per_beat=val;continue;
-		}
-		else if (sscanf(line,"\#%[a-zA-Z/ ]\\n",buf)==1){
-		  printf("comment: %s\\n",buf);
-		  continue;
-		}
-		else  {
-		  printf("'.hcf' parse error: %s\\n",line);
-		}
-	  }
-	  fclose(load_file);
-
-	}
-  };}
+            callback cb_Open
             xywh {0 0 100 20} shortcut 0x4006f labelsize 14
+          }
+          MenuItem load_sample_menu {
+            label {&Load Sample}
+            callback cb_OpenSample
+            xywh {0 0 22 15} shortcut 0x4006c labelsize 14 hide deactivate
+            code0 {enable_samples_menuitem();}
           }
           MenuItem save_again {
             label {&Save}
@@ -238,10 +170,72 @@ class HarmonatorUI {open
             callback {about->show();}
             xywh {0 0 100 20} labelsize 14
           }
+          MenuItem {} {
+            label {&Help}
+            callback {//						R1		R2		R3		R4
+  // browser_path defined	y		y		n		n
+  // manual_path defined	y		n		y		n
+  // browser exe exists		y
+  // manual exists			y
+  //-----------------------------------------------------------------
+  //						a0		a1		a2		a3			
+  //=================================================================
+  // a0 - display manual using designated browser
+  // a1 - info "set your manual path"
+  // a2 - info "set browser path". manual is at path ... and can be viewed by browser
+  // a3 - set browser_path and manual_path
+  string &bp(Harmonator::browser_path), &mp(Harmonator::manual_path);
+  string msg;
+  int bp_axs,mp_axs;
+  static Fl_Text_Buffer tb;
+  pid_t pid;
+  // todo: 
+  //if 
+  //	this host has the 'which' command AND
+  //	bp has no useful path
+  //then
+  //	attempt to locate one the standard browsers(mozilla,firefox,
+  //	google-chrome, lynx, dillo
+
+  if ((bp_axs=access(bp.c_str(),X_OK))!=0){
+	msg = string("Automatic display of Harmonator's help manual requires a browser. Your current `browser_path' setting is ");
+	msg= msg + (bp.size()?string("`")+bp+string("'"):string("undefined"));
+	msg = msg  + string(" which has caused an error. A path can be set with the `browser-path' command-line option. ");
+  }
+  if ((mp_axs=access(mp.c_str(),R_OK))!=0){
+	msg = msg + string("The currently defined manual path is ");
+	msg = msg + (mp.size()?string("`")+mp+string("'"):string("undefined"));
+	msg = msg + string(" which has caused an error. A manual path can be set with the `manual-path' command-line option. ");
+  }
+  else if (mp_axs==0 && bp_axs!=0){
+	msg = msg+string("The currently defined manual path is `") + mp + string("' and is accessible but no suitable browser has been defined. Until you define a browser path, you can open this file manually in your browser.");
+  };
+  if (!(mp_axs==0 && bp_axs==0)){
+	tb.text(msg.c_str());
+	about_text->wrap_mode(Fl_Text_Display::WRAP_AT_BOUNDS,0);	 
+	about_text->buffer(tb);
+	about->show();
+  } else {
+	pid = fork();
+	if (pid==0){
+	  // child process-fire up the browser help
+	  execl(bp.c_str(),bp.c_str(),mp.c_str(),NULL);
+	}
+	else if (pid<0){
+	  //tbd: throw an erroe
+	}
+	else {
+	  // parent process -do nothing for now
+	}
+  }
+			
+  //  system((HarmonatorUI::browser_path+string(" ")+HarmonatorUI::manual_path).c_str());} selected
+            tooltip {Call up help in browser} xywh {0 0 22 15} shortcut 0xffbe labelsize 14
+          }
         }
       }
       Fl_Group pattern_group {
-        label {Pattern Generation} open
+        label {Pattern Generation}
         xywh {33 44 401 120} box BORDER_FRAME color 51 labeltype NO_LABEL
       } {
         Fl_Input rhythm_string {
@@ -297,7 +291,7 @@ class HarmonatorUI {open
         }
       }
       Fl_Group {} {
-        label Performance open
+        label Performance
         xywh {33 334 401 260} box BORDER_FRAME color 52 align 17
       } {
         Fl_Group {} {
@@ -589,8 +583,8 @@ for (int i=(int)(beats_per_measure->value()); i<7;i++)
 	metronome_lights[i]->hide();
 harmonator = h;} {}
     Fl_Window about {
-      label About
-      xywh {774 495 455 295} type Single hide modal
+      label About open
+      xywh {341 490 455 295} type Single modal visible
     } {
       Fl_Button {} {
         label {&Close}
@@ -633,11 +627,10 @@ harmonator = h;} {}
   	 "OTHER DEALINGS IN THE SOFTWARE."
   	 );
 about_text->wrap_mode(Fl_Text_Display::WRAP_AT_BOUNDS,0);	 
-about_text->buffer(about_buffer);} {selected
-    }
+about_text->buffer(about_buffer);} {}
     code {sample_trigger = 0;//midi only} {}
     Fl_Window splash {
-      label Splash open
+      label Splash
       xywh {524 499 330 145} type Single noborder visible
     } {
       Fl_Box {} {
@@ -656,7 +649,7 @@ about_text->buffer(about_buffer);} {selected
   }
   Function {show(int argc, char **argv)} {} {
     code {Fl::visual(FL_DOUBLE|FL_INDEX);
-mainWindow->show(argc,argv);} {}
+mainWindow->show();} {}
   }
   decl {Fl_Output* chord_functions[4];} {private local
   }
@@ -844,5 +837,139 @@ adjust_root->shortcut(adjust_root_shortcut);} {}
     code {lsync_now->type(radio?FL_RADIO_BUTTON:FL_NORMAL_BUTTON); 
   lsync_beat->type(radio?FL_RADIO_BUTTON:FL_NORMAL_BUTTON); 
   lsync_measure->type(radio?FL_RADIO_BUTTON:FL_NORMAL_BUTTON);} {}
+  }
+  Function {load_hcf(const char *fn)} {open return_type void
+  } {
+    code {FILE *load_file;
+	char line[100];
+	char buf[100];
+	int val;
+	int varray[4];
+
+	if ((load_file=fopen(fn,"r"))!=NULL){
+
+	   while (fgets(line,sizeof(line),load_file)) {
+		printf("line: %s\\n",line);
+		if (sscanf(line,"rhythm string %s\\n",buf)){
+		  rhythm_string->value(buf);continue;
+		}
+		else if (sscanf(line,"part string %s\\n",buf)==1){
+		  part_string->value(buf);continue;
+		}
+		else if (sscanf(line,"chord_hold %d\\n",&val)==1){
+		  chord_hold->value(val);continue;
+		}
+		else if (sscanf(line,"four_part %d\\n",&val)==1){
+		  four_part->value(val);continue;
+		}
+		else if (sscanf(line,"adjust_root %d\\n",&val)==1){
+		  adjust_root->value(val);continue;
+		}
+		else if (sscanf(line,"strig_midi %d\\n",&val)==1){
+		  strig_midi->value(val);
+		  if (val){
+			lsync_now->type(FL_RADIO_BUTTON);
+			lsync_measure->type(FL_RADIO_BUTTON);
+			lsync_beat->type(FL_RADIO_BUTTON);
+		  }
+		  continue;
+		}
+
+		else if (sscanf(line,"strig_gate %d\\n",&val)==1){
+		  strig_gate->value(val);
+		  if (val){
+			lsync_now->type(FL_NORMAL_BUTTON);
+			lsync_measure->type(FL_NORMAL_BUTTON);
+			lsync_beat->type(FL_NORMAL_BUTTON);
+		  }
+		  continue;
+		}
+
+		else if (sscanf(line,"lsync_now %d\\n",&val)==1){
+		  lsync_now->value(val);
+		  continue;
+		}
+
+		else if (sscanf(line,"lsync_measure %d\\n",&val)==1){
+		  lsync_measure->value(val);
+		  continue;
+		}
+		else if (sscanf(line,"lsync_beat %d\\n",&val)==1){
+		  lsync_beat->value(val);
+		  continue;
+		}
+
+		else if (sscanf(line,"part/midi mapping %d %d %d %d\\n",varray,varray+1,varray+2,varray+3)==4){
+		  for (int i=0;i<4;i++)
+			harmonator->chan[i]=varray[i];
+		  continue;
+		}
+		else if (sscanf(line,"%[^\#0123456789 ] %d\\n",buf,&val)==2 && 
+				 strstr("rest p pp mp mf f ff",buf)){
+		  printf("buf:%s\\n",buf);
+		  harmonator->dynamics_scale[buf]=val;
+		  cout << "harmonator->dynamics_scale[" << buf << "]:" << (int)(harmonator->dynamics_scale[buf]) << endl;
+		  continue;
+		}
+		else if (sscanf(line,"beats_per_measure %d\\n",&val)==1){
+		  beats_per_measure->value(val);continue;
+		}
+		else if (sscanf(line,"pulses_per_beat %d\\n",&val)==1){
+		  harmonator->main_clock.pulses_per_beat=val;continue;
+		}
+		else if (sscanf(line,"\#%[a-zA-Z/ ]\\n",buf)==1){
+		  printf("comment: %s\\n",buf);
+		  continue;
+		}
+		else  {
+		  printf("'.hcf' parse error: %s\\n",line);
+		}
+	  }
+	  fclose(load_file);
+
+	}} {}
+  }
+  Function {cb_Open(Fl_Menu_ *o, void *v)} {private return_type {static void}
+  } {
+    code {((HarmonatorUI*)(o->parent()->user_data()))->cb_Open_i(o,v);} {}
+  }
+  Function {cb_OpenSample(Fl_Menu_*o, void *v)} {private return_type {static void}
+  } {
+    code {((HarmonatorUI*)(o->parent()->user_data()))->cb_OpenSample_i(o,v);} {}
+  }
+  Function {cb_Open_i(Fl_Menu_ *o, void *v)} {open private return_type void
+  } {
+    code {char *fn;
+  int varray[4];
+  int val;
+  char buf[100];
+ //
+  if ((fn = fl_file_chooser("Load Harmonator Setup","Harmonator Setup (*.{hcf})", Harmonator::samples_directory.c_str()))){
+	cfg_fn = fn;
+	load_hcf(fn);
+  };} {}
+  }
+  Function {cb_OpenSample_i(Fl_Menu_ *o, void *v)} {open private return_type void
+  } {
+    code {char *fn;
+  int varray[4];
+  int val;
+  char buf[100];
+ //
+  if ((fn = fl_file_chooser("Load Harmonator Sample Setup","Harmonator Setup (*.{hcf})", Harmonator::samples_directory.c_str()))){
+	cfg_fn = fn;
+	load_hcf(fn);
+  };} {}
+  }
+  Function {enable_samples_menuitem()} {open return_type void
+  } {
+    code {if (access(Harmonator::samples_directory.c_str(),R_OK|F_OK)==0){
+load_sample_menu->activate();
+load_sample_menu->show();
+}} {}
+  }
+  Function {~HarmonatorUI()} {open
+  } {
+    code {} {}
   }
 } 

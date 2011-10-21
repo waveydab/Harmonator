@@ -539,6 +539,12 @@ class Harmonator
 	}
   };
 
+  // paths for convenient lookup of help and samples
+  static string samples_directory; 
+  static string manual_path; 
+  static string browser_path; 
+
+
   static void test();
   HarmonatorUI *gui;
 /*   int beats_per_measure; */

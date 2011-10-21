@@ -7,6 +7,11 @@
 #define matvisit(x)
 #endif
 
+string Harmonator::samples_directory; 
+string Harmonator::manual_path; 
+string Harmonator::browser_path; 
+
+
 /* Use this variable to remember original terminal attributes. */
 struct termios saved_attributes;
      
@@ -57,6 +62,52 @@ pthread_cond_t Harmonator::midi_action_test::hold = PTHREAD_COND_INITIALIZER;
 ChordWizard cw;
 
 int Chord_Notes::max_parts = 4;
+
+
+// Fl::args callback function
+int arg(int argc, char **argv, int &i)
+{
+  char *cp=argv[i];
+  if (strncmp(cp,"--",2)==0){
+	cp+=2;
+	if (strncmp(cp,"browser-path",strlen("browser-path"))==0){
+	  cp+=strlen("browser-path");
+	  if (*cp == '='){
+		cp++;
+		Harmonator::browser_path = cp;
+		i+=1;
+		return 1;
+	  }
+	}
+	else if (strncmp(
+					 cp,
+					 "samples-directory",
+					 strlen("samples-directory"))==0){
+	  cp+=strlen("samples-directory");
+	  if (*cp == '='){
+		cp++;
+		Harmonator::samples_directory = cp;
+		i+=1;
+		return 1;
+	  }
+
+	}
+	else if (strncmp(
+					 argv[i]+2,
+					 "manual-path",
+					 strlen("manual-path"))==0){
+	  cp+=strlen("manual-path");
+	  if (*cp == '='){
+		cp++;
+		Harmonator::manual_path = cp;
+		i+=1;
+		return 1;
+	  }
+	}
+  }
+  return 0;
+}
+
 
 extern ostream& operator<<(std::ostream&s, const music_clock& mc);
 
@@ -1470,26 +1521,19 @@ int main(int argc, char **argv) {
   int npfd=0;
   struct pollfd* pfd;
   time_t start;
+  int idx=1;
 
 				 
   //HarmonatorUI *hui=new HarmonatorUI;
   Harmonator *harmonator = new Harmonator;
-  printf("harmonator=%p\n",harmonator);
   HarmonatorUI hui(harmonator);
-  //cout << hui.cfg_fn << endl;
-  printf("hui.harmonator=%p\n",hui.harmonator);
   harmonator->gui = &hui;
-
   hui.install_cb((void *)&Harmonator::gui_callback_handler);
-
   // open alsa client
   harmonator->open_seq();
   int y=break_mark(0);
-  log("After alsa setup");
-  
   /* I'm guessing this is the number of sequencer input ports */
   npfd = snd_seq_poll_descriptors_count(harmonator->seq_handle, POLLIN);
-  
   // Extract file descriptors from alsa plumbing and pass on to fltk
   // event plumbing which seems to use the 'select' mechanism
   pfd = (struct pollfd *)alloca(npfd * sizeof(struct pollfd));
@@ -1500,16 +1544,18 @@ int main(int argc, char **argv) {
   	// this form looks for POLLIN events
 	  hui.register_fd_handler(pfd[i].fd,Harmonator::HandleAlsaPort);
     }
-  
-  hui.splash->show();
+  Fl::args(argc,argv,idx,arg);
+  hui.enable_samples_menuitem();
+  hui.splash->show(argc,argv);
+
   start=time(NULL);
   do {
 	Fl::wait(3);
   } while (difftime(time(NULL),start)<3.0);
   hui.splash->hide();
-  	hui.show(argc, argv);
-  
-	return(hui.loop_gui());
+
+  hui.show(argc, argv);
+  return(hui.loop_gui());
 }
 #endif
 
