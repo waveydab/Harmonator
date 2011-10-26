@@ -22,7 +22,16 @@ Run this without arguments normally. It will scan your system for available reso
   --enable-test-configuration
                           Generate code to build testing version
 
-"configure" normally attempts to check versions of applicable libraries. The first switch disables this check. The second switch configures Harmonator for testing and is probably not necessary.
+"configure" normally attempts to check versions of applicable libraries. The first switch disables this check. The second switch configures Harmonator for testing and is probably not necessary. As part of my efforts to more fully configure Harmonator so it will find samples and the manual, I've added a variable to the configuration which allows you to specify an html browser with which to view the manual. This can be done by either specifying a full path to the browser as below
+
+./configure browser=/usr/local/bin/dillo
+
+
+or you can simply give the executable filename and the configure script will find the path on its own.
+
+./configure browser=dillo
+
+This should allow you to pull up the manual thru the "Help" menu or by pressing the F1 key.
 
 2. Run "make". This will build a midi clock application and Harmonator proper.
 3. Run "make install" to copy files to the normal install sites. You may have to become root to install.
