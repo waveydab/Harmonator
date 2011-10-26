@@ -603,6 +603,7 @@ EGREP
 GREP
 CXXCPP
 FLUID
+browser
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
 CXXDEPMODE
@@ -696,6 +697,7 @@ LDFLAGS
 LIBS
 CPPFLAGS
 CCC
+browser
 FLUID
 CXXCPP'
 
@@ -1329,6 +1331,7 @@ Some influential environment variables:
   LIBS        libraries to pass to the linker, e.g. -l<library>
   CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
+  browser     Specify browser exefile or exefile path
   FLUID       Check for fltk's gui compiler
   CXXCPP      C++ preprocessor
 
@@ -3383,6 +3386,11 @@ fi
 
 
 
+
+
+
+
+
 # Disable library version checking
 # Check whether --enable-library_version_check was given.
 if test "${enable_library_version_check+set}" = set; then :
@@ -4599,16 +4607,26 @@ rm $temp_fifo
 
 
 # define some build variables
+if test "x${browser}" != x; then # string 'browser'
+if test -x "${browser}"; then
+echo foo > /dev/null
+elif which "${browser}" > /dev/null; then
+browser=$(which $browser)
+fi
+fi
+
+
+
 
 LDFLAGS=$(fltk-config --ldflags | perl -e 'while (<>){if ($_ =~ m/(-L.+?)\s+-l/){print $1;}}')
 LIBS=$(fltk-config --ldflags | perl -e 'while (<>){if ($_ =~ m/(-l.+)/){print $1;}}')
 LIBS="$LIBS -lasound"
-CPPFLAGS="$(fltk-config --cxxflags) -DDATADIR=\"${datadir}\""
+CPPFLAGS="$(fltk-config --cxxflags) -DDATADIR=\"${datadir}/harmonator/samples\""
 # add a switch to enable the testing entry
 #CXXFLAGS='-g -O'
 if [[ "${test_configuration}" == "yes" ]] ; then
 CXXFLAGS='-g -coverage -pg' # dbg, coverage instr, etc.
-CPPFLAGS="$CPPFLAGS -DHARMONATOR_TEST -DDATADIR=\"${datadir}\""
+CPPFLAGS="$CPPFLAGS -DHARMONATOR_TEST -DDATADIR=\"${datadir}/harmonator/samples\""
 LIBS="$LIBS -lcppunit"
 fi
 
